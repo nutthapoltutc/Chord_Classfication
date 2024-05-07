@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Guitar Chord Learning</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            display: flex;
+            flex-direction: row; /* Layout set to horizontal row */
+            align-items: center;
+            justify-content: center;
+            height: 100vh; /* เพิ่ม background-image property */
+            background-image: url('https://getwallpapers.com/wallpaper/full/7/d/c/1126820-new-hd-guitar-wallpaper-1920x1080-for-phones.jpg'); /* เปลี่ยนชื่อไฟล์รูปภาพเป็นชื่อที่ตรงกับไฟล์ของคุณ */
+            background-size: cover; /* ให้ภาพขยายหรือย่อให้พอดีกับพื้นที่ของ body */
+            background-position: center; /* จุดที่ภาพจะแสดงตรงกลาง */
+            background-repeat: no-repeat; /* ไม่ให้ภาพทำซ้ำ */
+        }
+
+        .board {
+            width: 800px;
+            height: 800px;
+            border: 1px solid #000;
+            background-color: #000;
+            margin-right: 400px; /* Add some space between the board and image */
+        }
+
+        button {
+            margin-top: 10px;
+            padding: 16px 32px;
+            background-color: #007bff;
+            color: #fff;
+            border: none;
+            cursor: pointer;
+            border-radius: 4px;
+        }
+
+        button:hover {
+            background-color: #0056b3;
+        }
+
+        #controls {
+            display: flex;
+            flex-direction: column;
+            align-items: left;
+            justify-content: center;
+        }
+
+        #predictionResult {
+            margin-top: 15px;
+            font-weight: bold;
+            color: black; /* Set text color to black */
+        }
+
+        #predictedImage {
+            margin-top: 10px;
+            max-width: 500px;
+            max-height: 500px; /* Restrict the height of the predicted image */
+            height: auto;
+            width: auto;
+        }
+
+        .heading {
+            position: absolute;
+            top: 100px; /* ปรับตำแหน่งแกนตั้งตามความต้องการ */
+            left: 500px; /* ปรับตำแหน่งแกนนอนตามความต้องการ */
+            z-index: 999; /* ให้ส่วนนี้อยู่ด้านหน้า */
+            font-size: 50px;
+        }
+    </style>
+</head>
+<body>
+    <!-- Drawing board on the left -->
+    <div class="board"></div>
+
+    <!-- Controls and prediction result on the right -->
+    <div id="controls">
+        <button id="clearButton">Clear</button>
+        <button id="predictButton">Predict</button>
+        <div id="predictionResult">Predicted Class: </div>
+        <img id="predictedImage" alt="Predicted Class Image" />
+    </div>
+
+    <h2 class="heading">CHORD CLASSIFICATION</h2>
+
+    <script>
+        const board = document.querySelector('.board');
+        const canvas = document.createElement('canvas');
+        canvas.width = 500;
+        canvas.height = 500;
+        board.appendChild(canvas);
+
+        const context = canvas.getContext('2d');
+        context.fillStyle = 'black';
+        context.fillRect(0, 0, canvas.width, canvas.height);
+
+        let isDrawing = false;
+
+        function startDrawing(e) {
+            isDrawing = true;
+            draw(e);
+        }
+
+        function draw(e) {
+            if (!isDrawing) return;
+
+            context.lineWidth = 2;
+            context.lineCap = 'round';
+            context.strokeStyle = 'white';
+
+            // Get the relative position of the mouse within the canvas
+            const rect = canvas.getBoundingClientRect();
+            const x = e.clientX - rect.left;
+            const y = e.clientY - rect.top;
+
+            context.lineTo(x, y);
+            context.stroke();
+            context.beginPath();
+            context.moveTo(x, y);
+        }
+
+        function stopDrawing() {
+            isDrawing = false;
+            context.beginPath();
+        }
+
+        function clearBoard() {
+            context.fillStyle = 'black';
+            context.fillRect(0, 0, canvas.width, canvas.height);
+        }
+
+        function predictDrawing() {
+            const dataUrl = canvas.toDataURL('image/jpeg', 1.0);
+
+            fetch('/save_and_predict', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ image: dataUrl })
+            })
+            .then(response => response.json())
+            .then(data => {
+                document.getElementById('predictionResult').innerText = 'Predicted Class: ' + data.class;
+                document.getElementById('predictedImage').src = data.image_url;
+            })
+            .catch(error => {
+                console.error('Error:', error);
+            });
+        }
+
+        // Add event listeners to handle drawing interactions
+        canvas.addEventListener('mousedown', startDrawing);
+        canvas.addEventListener('mousemove', draw);
+        canvas.addEventListener('mouseup', stopDrawing);
+        canvas.addEventListener('mouseout', stopDrawing);
+
+        // Event listeners for buttons
+        document.getElementById('clearButton').addEventListener('click', clearBoard);
+        document.getElementById('predictButton').addEventListener('click', predictDrawing);
+    </script>
+</body>
+</html>
